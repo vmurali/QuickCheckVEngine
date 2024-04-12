@@ -64,11 +64,11 @@ rv32_xcheri_misc_alt src1 src2 imm dest =
   [ cseal       dest src1 src2
   , cunseal     dest src1 src2
   , candperm    dest src1 src2
-  , cbuildcap   dest src1 src2
-  , csetflags   dest src1 src2
-  , ccopytype   dest src1 src2
-  , ccseal      dest src1 src2
-  , csealentry  dest src1
+  --, cbuildcap   dest src1 src2
+  --, csetflags   dest src1 src2
+  --, ccopytype   dest src1 src2
+  --, ccseal      dest src1 src2
+  --, csealentry  dest src1
   , ccleartag   dest src1 ]
 
 genCSCDataTorture :: Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Template
@@ -89,8 +89,8 @@ genCSCDataTorture capReg tmpReg bitsReg sldReg nopermReg authReg = random $ do
   return $  (uniform [ instUniform $ rv32_xcheri_arithmetic src1 src2 imm tmpReg
                      , instUniform $ rv32_xcheri_misc_alt src1 src2 imm dest
                      , instUniform $ rv32_xcheri_inspection src1 dest
-                     , inst $ cinvoke src2 src1
-                     , inst $ cload tmpReg tmpReg 0x08
+                     --, inst $ cinvoke src2 src1
+                     --, inst $ cload tmpReg tmpReg 0x08
                      ])
 
 
@@ -187,7 +187,6 @@ genMOSC_Torture arch tmpReg = random $ do
   return $ uniform [ instUniform $ rv64_i_mem src1 src2 dest imm
                    , instUniform $ rv32_i_mem src1 src2 dest imm fenceOp1 fenceOp2
                    ]
-
 
 genTSCTorture :: Template
 genTSCTorture = random $ do
@@ -310,7 +309,7 @@ gen_csc_data_verify = random $ do
   let hpmCntIdx = 3
   let prolog = mconcat [ makeCap capReg  authReg tmpReg1 0x80010000     8 0
                        , makeCap bitsReg authReg tmpReg1 0x80014000 0x100 0
-                       , inst $ csealentry sldReg bitsReg
+                       --, inst $ csealentry sldReg bitsReg
                        , inst $ candperm nopermReg bitsReg 0
                        , inst $ ccleartag bitsReg bitsReg
                        , inst $ lw tmpReg1 capReg 0
@@ -325,16 +324,16 @@ genJump :: Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Tem
 genJump memReg reg0 reg1 reg2 imm offset = random $ do
   let czero = 0
   let ra = 1
-  return $ instSeq [ jalr_cap ra reg1
-                   , jalr_cap czero ra
+  return $ instSeq [ jalr ra reg1 0
+                   , jalr czero ra 0
                    ]
 
 genCSCInst :: Integer -> Integer -> Integer -> Integer -> Template
 genCSCInst memReg reg0 reg1 reg2 = random $ do
   let czero = 0
-  return $ instDist [ (1, jalr_cap czero reg0)
+  return $ instDist [ (1, jalr czero reg0 0)
                     , (2, add 29 29 29)
-                    , (1, cload reg1 reg2 0x8)
+                    --, (1, cload reg1 reg2 0x8)
                     , (1, auipc reg2 0)
                     ]
 
@@ -360,7 +359,7 @@ gen_csc_inst_verify = random $ do
   let reg1 = 24
   let reg2 = 25
   let mtcc = 28
-  let startSeq = inst $ jalr_cap zeroReg startReg
+  let startSeq = inst $ jalr zeroReg startReg 0
   let trainSeq = repeatN (18) (genJump memReg tmpReg pccReg loadReg 0x20 0x0)
   let leakSeq = repeatN (1) (genJump memReg2 tmpReg pccReg loadReg 0x20 0x100)
   let tortSeq = startSeq <> leakSeq
@@ -371,22 +370,22 @@ gen_csc_inst_verify = random $ do
                        , makeCap_core memReg authReg2 tmpReg 0x80007000
                        , makeCap_core memReg2 authReg2 tmpReg 0x80007100
                        , inst $ cmove startReg jumpReg
-                       , inst $ cstore jumpReg memReg 0x0c
+                       --, inst $ cstore jumpReg memReg 0x0c
                        , inst $ cincoffsetimmediate tmpReg jumpReg 0x100
                        , inst $ ccleartag tmpReg tmpReg
-                       , inst $ cstore tmpReg memReg2 0x0c
-                       , inst $ cload tmpReg memReg2 0x1f
+                       --, inst $ cstore tmpReg memReg2 0x0c
+                       --, inst $ cload tmpReg memReg2 0x1f
                        , startSeq
                        , trainSeq
-                       , inst $ cload tmpReg jumpReg 0x8
+                       --, inst $ cload tmpReg jumpReg 0x8
                        , inst $ cincoffsetimmediate tmpReg jumpReg 0x40
-                       , inst $ cload tmpReg tmpReg 0x8
+                       --, inst $ cload tmpReg tmpReg 0x8
                        , inst $ cincoffsetimmediate tmpReg jumpReg 0x80
-                       , inst $ cload tmpReg tmpReg 0x8
+                       --, inst $ cload tmpReg tmpReg 0x8
                        , inst $ cincoffsetimmediate tmpReg jumpReg 0xc0
-                       , inst $ cload tmpReg tmpReg 0x8
+                       --, inst $ cload tmpReg tmpReg 0x8
                        , inst $ cincoffsetimmediate tmpReg jumpReg 0x100
-                       , inst $ cload tmpReg tmpReg 0x8
+                       --, inst $ cload tmpReg tmpReg 0x8
                        , inst $ add pccReg zeroReg zeroReg
                        , inst $ cmove jumpReg startReg
                        -- zero out all sbcRegs

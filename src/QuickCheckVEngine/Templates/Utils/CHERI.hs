@@ -77,8 +77,7 @@ randomCInvoke cs1 cs2 typeReg tmpReg =
           , (1, mempty) ] -- seal?
   <> dist [ (9, inst $ cseal cs2 cs2 typeReg)
           , (1, mempty) ]
-  <> instSeq [ cinvoke cs2 cs1
-             , cmove 31 1 ]
+  <> instSeq [ cmove 31 1 ]
 
 boundPCC :: Integer -> Integer -> Integer -> Integer -> Template
 boundPCC tmp1 tmp2 offset size =
@@ -87,14 +86,14 @@ boundPCC tmp1 tmp2 offset size =
             inst $ cincoffset tmp1 tmp1 tmp2, -- increment PCC
             li64 tmp2 size,
             inst $ csetbounds tmp1 tmp1 tmp2, -- reduce bounds
-            inst $ jalr_cap tmp1 tmp1 ] -- jump to new PCC
+            inst $ jalr tmp1 tmp1 0] -- jump to new PCC
 
 clearASR :: Integer -> Integer -> Template
 clearASR tmp1 tmp2 = instSeq [ cspecialrw tmp1 0 0, -- Get PCC
                                addi tmp2 0 0xbff, -- Load immediate without ASR set
                                candperm tmp1 tmp1 tmp2, -- Mask out ASR
                                cspecialrw 0 28 tmp1, -- Clear ASR in trap vector
-                               jalr_cap tmp1 0 ]
+                               jalr tmp1 0 0]
 
 makeCap :: Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Template
 makeCap dst source tmp base len offset =
@@ -119,7 +118,7 @@ makeShortCap = random $ do
   return $ instSeq [ csetboundsimmediate dst source len,
                      addi tmp 0 (Data.Bits.shift offset (-12)),
                      slli tmp tmp 12,
-                     csetoffset dst dst tmp,
+                     csetaddr dst dst tmp,
                      cincoffsetimmediate dst dst (offset Data.Bits..&. 0xfff)]
 
 legalCapLoad :: Integer -> Integer -> Template
@@ -129,7 +128,7 @@ legalCapLoad addrReg targetReg = random $ do
                    , lui tmpReg 0x40004
                    , slli tmpReg tmpReg 1
                    , add addrReg tmpReg addrReg
-                   , cload targetReg addrReg 0x17 ]
+                   , clc targetReg addrReg 0x17 ]
 
 legalCapStore :: Integer -> Template
 legalCapStore addrReg = random $ do
@@ -139,7 +138,7 @@ legalCapStore addrReg = random $ do
                    , lui tmpReg 0x40004
                    , slli tmpReg tmpReg 1
                    , add addrReg tmpReg addrReg
-                   , cstore dataReg addrReg 0x4 ]
+                   , csc dataReg addrReg 0x4 ]
 
 loadTags :: Integer -> Integer -> Template
 loadTags addrReg capReg = random $ do
@@ -160,16 +159,15 @@ loadTags addrReg capReg = random $ do
            <> maybeCapStore addrReg tmpReg capReg
            <> inst (cincoffsetimmediate addrReg addrReg 16)
            <> inst (cincoffsetimmediate addrReg addrReg (4096 - (16 * 5)))
-           <> inst (cloadtags dataReg addrReg)
-              where maybeCapStore addrReg capReg tmpReg = instUniform [ sq addrReg capReg 0
-                                                                      , sq addrReg tmpReg 0 ]
+              where maybeCapStore addrReg capReg tmpReg = instUniform [ csc addrReg capReg 0
+                                                                      , csc addrReg tmpReg 0 ]
 
 
 loadRegion ::  Integer -> Integer -> Integer -> Integer -> Template -> Template
 loadRegion numLines capReg cacheLSize tmpReg insts =
    if numLines == 0 then insts
-   else if numLines == 1 then mconcat [insts, inst (cload tmpReg capReg 0x0)]
-   else loadRegion (numLines - 1) capReg cacheLSize tmpReg (mconcat [insts, inst (cload tmpReg capReg 0x0), inst (cincoffsetimmediate capReg capReg cacheLSize)])
+   else if numLines == 1 then mconcat [insts, inst (clc tmpReg capReg 0x0)]
+   else loadRegion (numLines - 1) capReg cacheLSize tmpReg (mconcat [insts, inst (clc tmpReg capReg 0x0), inst (cincoffsetimmediate capReg capReg cacheLSize)])
 
 switchEncodingMode :: Template
 switchEncodingMode = random $ do
@@ -178,9 +176,8 @@ switchEncodingMode = random $ do
   mode    <- elements [0, 1]
   return $ instSeq [ cspecialrw tmpReg1 0 0
                    , addi tmpReg2 0 mode
-                   , csetflags tmpReg1 tmpReg1 tmpReg2
                    , cspecialrw 0 28 tmpReg1 --Also write trap vector so we stay in cap mode
-                   , jalr_cap 0 tmpReg1 ]
+                   , jalr 0 tmpReg1 0]
 
 cspecialRWChain :: Template
 cspecialRWChain = random $ do
@@ -191,7 +188,7 @@ cspecialRWChain = random $ do
   tmpReg5 <- src
   tmpReg6 <- src
   return $ instSeq [ cspecialrw tmpReg2 30 tmpReg1
-                   , jalr_cap      tmpReg2 0
+                   , jalr       tmpReg2 0  0
                    , cspecialrw tmpReg4 30 tmpReg3
                    , cspecialrw tmpReg6 30 tmpReg5 ]
 

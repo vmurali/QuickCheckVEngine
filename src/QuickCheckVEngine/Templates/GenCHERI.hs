@@ -72,16 +72,16 @@ capDecodeTest = random $ do
                     inst $ sw 1 2 8,
                     li32 2 ((shift cap (-96)) Data.Bits..&. 0xffffffff),
                     inst $ sw 1 2 12,
-                    inst $ lq 2 1 0,
+                    -- inst $ ld 2 1 0,
                     inst $ cgetlen 6 2,
-                    inst $ cgetoffset 6 2,
+                    inst $ cgetaddr 6 2,
                     inst $ cgetbase 6 2,
                     inst $ cgetaddr 6 2,
                     inst $ cgethigh 6 2,
                     inst $ cgettype 6 2,
-                    inst $ cgetflags 6 2,
+                    -- inst $ cgetflags 6 2,
                     inst $ cgetperm 6 2,
-                    inst $ cbuildcap 2 3 2,
+                    -- inst $ cbuildcap 2 3 2,
                     inst $ cgettype 4 2,
                     inst $ cgettag 5 2]
 
@@ -150,7 +150,7 @@ gen_simple_cclear = random $ do
   return $ dist [ (4, prepReg64 dest)
                 , (8, gen_rv32_i_arithmetic)
                 , (8, instUniform $ rv64_i_arith src1 src2 dest imm)
-                , (2, inst $ cclear quarter mask)
+                -- , (2, inst $ cclear quarter mask)
                 ]
 
 gen_simple_fpclear :: Template
@@ -158,7 +158,7 @@ gen_simple_fpclear = random $ do
   mask <- bits 8
   quarter <- bits 2
   return $ dist [ (8, gen_rv64_fd)
-                , (2, inst $ fpclear quarter mask)
+                -- , (2, inst $ fpclear quarter mask)
                 ]
 
 randomCHERITest :: Template

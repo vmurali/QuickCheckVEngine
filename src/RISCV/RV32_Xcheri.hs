@@ -47,6 +47,317 @@
 
 {-|
     Module      : RISCV.RV32_Xcheri
+    Description : RISC-V CHERIoT extension
+
+    The 'RISCV.RV32_Xcheri' module provides the description of the RISC-V
+    CHERIoT extension
+-}
+
+module RISCV.RV32_Xcheri (
+-- * RISC-V CHERIoT, instruction definitions
+  auicgp
+, candperm
+, ccleartag
+, cgetaddr
+, cgetbase
+, cgethigh
+, cgetlen
+, cgetperm
+, cgettag
+, cgettop
+, cgettype
+, cincoffset
+, cincoffsetimmediate
+, cmove
+, cram
+, crrl
+, cseal
+, csetaddr
+, csetbounds
+, csetboundsexact
+, csetboundsimmediate
+, csetequalexact
+, csethigh
+, cspecialrw
+, csub
+, ctestsubset
+, cunseal
+, clc
+, csc
+-- * RISC-V CHERI, others
+, rv32_xcheri_disass
+, rv32_xcheri_extract
+, rv32_xcheri_shrink
+, rv32_xcheri
+, rv32_xcheri_inspection
+, rv32_xcheri_arithmetic
+, rv32_xcheri_misc
+, rv32_xcheri_mem
+, rv32_xcheri_control
+) where
+
+import RISCV.Helpers (reg, int, prettyR, prettyI, prettyL, prettyS, prettyR_2op, prettyU, ExtractedRegs)
+import InstrCodec (DecodeBranch, (-->), encode, Instruction)
+import RISCV.RV32_I
+import RISCV.ArchDesc
+
+auicgp_raw                         =                                        "imm[19:0]                     rd[4:0] 1111011"
+auicgp rd                          = encode auicgp_raw                                                     rd
+candperm_raw                       =                                        "0001101 rs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+candperm cd cs1 rs2                = encode candperm_raw                             rs2      cs1          cd
+ccleartag_raw                      =                                        "1111111 01011    cs1[4:0] 000 cd[4:0] 1011011"
+ccleartag cd cs1                   = encode ccleartag_raw                                     cs1          cd
+cgetaddr_raw                       =                                        "1111111 01111    cs1[4:0] 000 rd[4:0] 1011011"
+cgetaddr rd cs1                    = encode cgetaddr_raw                                      cs1          rd
+cgetbase_raw                       =                                        "1111111 00010    cs1[4:0] 000 rd[4:0] 1011011"
+cgetbase rd cs1                    = encode cgetbase_raw                                      cs1          rd
+cgethigh_raw                       =                                        "1111111 10111    cs1[4:0] 000 rd[4:0] 1011011"
+cgethigh rd cs1                    = encode cgethigh_raw                                      cs1          rd
+cgetlen_raw                        =                                        "1111111 00011    cs1[4:0] 000 rd[4:0] 1011011"
+cgetlen rd cs1                     = encode cgetlen_raw                                       cs1          rd
+cgetperm_raw                       =                                        "1111111 00000    cs1[4:0] 000 rd[4:0] 1011011"
+cgetperm rd cs1                    = encode cgetperm_raw                                      cs1          rd
+cgettag_raw                        =                                        "1111111 00100    cs1[4:0] 000 rd[4:0] 1011011"
+cgettag rd cs1                     = encode cgettag_raw                                       cs1          rd
+cgettop_raw                        =                                        "1111111 11000    cs1[4:0] 000 rd[4:0] 1011011"
+cgettop rd cs1                     = encode cgettop_raw                                       cs1          rd
+cgettype_raw                       =                                        "1111111 00001    cs1[4:0] 000 rd[4:0] 1011011"
+cgettype rd cs1                    = encode cgettype_raw                                      cs1          rd
+cincoffset_raw                     =                                        "0010001 rs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+cincoffset cd cs1 rs2              = encode cincoffset_raw                           rs2      cs1          cd
+cincoffsetimmediate_raw            =                                        "imm[11:0]        cs1[4:0] 001 cd[4:0] 1011011"
+cincoffsetimmediate cd cs1 imm     = encode cincoffsetimmediate_raw          imm              cs1          cd
+cmove_raw                          =                                        "1111111 01010    cs1[4:0] 000 cd[4:0] 1011011"
+cmove cd cs1                       = encode cmove_raw                                         cs1          cd
+cram_raw                           =                                        "1111111 01001    rs1[4:0] 000 rd[4:0] 1011011"
+cram rd rs1                        = encode cram_raw                                          rs1          rd
+crrl_raw                           =                                        "1111111 01000    rs1[4:0] 000 rd[4:0] 1011011"
+crrl rd rs1                        = encode crrl_raw                                          rs1          rd
+cseal_raw                          =                                        "0001011 cs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+cseal cd cs1 cs2                   = encode cseal_raw                                cs2      cs1          cd
+csetaddr_raw                       =                                        "0010000 rs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+csetaddr cd cs1 rs2                = encode csetaddr_raw                             rs2      cs1          cd
+csetbounds_raw                     =                                        "0001000 rs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+csetbounds cd cs1 rs2              = encode csetbounds_raw                           rs2      cs1          cd
+csetboundsexact_raw                =                                        "0001001 rs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+csetboundsexact cd cs1 rs2         = encode csetboundsexact_raw                      rs2      cs1          cd
+csetboundsimmediate_raw            =                                        "imm[11:0]        cs1[4:0] 010 cd[4:0] 1011011"
+csetboundsimmediate cd cs1 imm     = encode csetboundsimmediate_raw          imm              cs1          cd
+csetequalexact_raw                 =                                        "1000001 cs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+csetequalexact cd cs1 cs2          = encode csetequalexact_raw                       cs2      cs1          cd
+csethigh_raw                       =                                        "0010110 rs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+csethigh cd cs1 rs2                = encode csethigh_raw                             rs2      cs1          cd
+cspecialrw_raw                     =                                        "0000001 cSP[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+cspecialrw cd cSP cs1              = encode cspecialrw_raw                           cSP      cs1          cd
+csub_raw                           =                                        "0010100 cs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+csub cd cs1 cs2                    = encode csub_raw                                 cs2      cs1          cd
+ctestsubset_raw                    =                                        "0100000 cs2[4:0] cs1[4:0] 000 rd[4:0] 1011011"
+ctestsubset rd cs1 cs2             = encode ctestsubset_raw                          cs2      cs1          rd
+cunseal_raw                        =                                        "0001100 cs2[4:0] cs1[4:0] 000 cd[4:0] 1011011"
+cunseal cd cs1 cs2                 = encode cunseal_raw                              cs2      cs1          cd
+
+-- Memory
+clc_raw                            =                                        "imm[11:0]          rs1[4:0] 011  rd[4:0] 0000011"
+clc rd rs1 imm                     = encode clc_raw                          imm                rs1           rd
+csc_raw                            =                                        "imm[11:5] rs2[4:0] rs1[4:0] 011 imm[4:0] 0100011"
+csc rs1 rs2 imm                    = encode csc_raw                          imm       rs2      rs1          imm
+
+-- | Pretty-print a special capability read/write instruction
+pretty_cspecialrw instr idx cs1 cd =
+  concat [instr, " ", reg cd, ", ", name_scr idx, ", ", reg cs1]
+  where name_scr 28 = "mtcc"
+        name_scr 29 = "mtdc"
+        name_scr 30 = "mscratchc"
+        name_scr 31 = "mepcc"
+        name_scr idx = int idx
+
+-- | Dissassembly of CHERIoT instructions
+rv32_xcheri_disass :: [DecodeBranch String]
+rv32_xcheri_disass = [ auicgp_raw                      --> prettyU "auicgp"
+                     , candperm_raw                    --> prettyR "candperm"
+                     , ccleartag_raw                   --> prettyR_2op "ccleartag"
+                     , cgetaddr_raw                    --> prettyR_2op "cgetaddr"
+                     , cgetbase_raw                    --> prettyR_2op "cgetbase"
+                     , cgethigh_raw                    --> prettyR_2op "cgethigh"
+                     , cgetlen_raw                     --> prettyR_2op "cgetlen"
+                     , cgetperm_raw                    --> prettyR_2op "cgetperm"
+                     , cgettag_raw                     --> prettyR_2op "cgettag"
+                     , cgettop_raw                     --> prettyR_2op "cgettop"
+                     , cgettype_raw                    --> prettyR_2op "cgettype"
+                     , cincoffset_raw                  --> prettyR "cincoffset"
+                     , cincoffsetimmediate_raw         --> prettyI "cincoffsetimmediate"
+                     , cmove_raw                       --> prettyR_2op "cmove"
+                     , cram_raw                        --> prettyR_2op "cram"
+                     , crrl_raw                        --> prettyR_2op "crrl"
+                     , cseal_raw                       --> prettyR "cseal"
+                     , csetaddr_raw                    --> prettyR "csetaddr"
+                     , csetbounds_raw                  --> prettyR "csetbounds"
+                     , csetboundsexact_raw             --> prettyR "csetboundsexact"
+                     , csetboundsimmediate_raw         --> prettyI "csetboundsimmediate"
+                     , csetequalexact_raw              --> prettyR "csetequalexact"
+                     , csethigh_raw                    --> prettyR "csethigh"
+                     , cspecialrw_raw                  --> pretty_cspecialrw "cspecialrw"
+                     , csub_raw                        --> prettyR "csub"
+                     , ctestsubset_raw                 --> prettyR "ctestsubset"
+                     , cunseal_raw                     --> prettyR "cunseal"
+                     , clc_raw                         --> prettyL "clc"
+                     , csc_raw                         --> prettyS "csc" ]
+
+extract_cspecialrw :: Integer -> Integer -> Integer -> ExtractedRegs
+extract_cspecialrw idx rs1 rd = (False, Nothing, Just rs1, Just rd, \x y z -> encode cspecialrw_raw idx y z)
+
+extract_cmove :: Integer -> Integer -> ExtractedRegs
+extract_cmove rs1 rd = (True, Nothing, Just rs1, Just rd, \x y z -> encode cmove_raw y z)
+
+rv32_xcheri_extract :: [DecodeBranch ExtractedRegs]
+rv32_xcheri_extract = [ auicgp_raw                      --> extract_uimm auicgp_raw
+                      , candperm_raw                    --> extract_2op candperm_raw
+                      , ccleartag_raw                   --> extract_1op ccleartag_raw
+                      , cgetaddr_raw                    --> extract_1op cgetaddr_raw
+                      , cgetbase_raw                    --> extract_1op cgetbase_raw
+                      , cgethigh_raw                    --> extract_1op cgethigh_raw
+                      , cgetlen_raw                     --> extract_1op cgetlen_raw
+                      , cgetperm_raw                    --> extract_1op cgetperm_raw
+                      , cgettag_raw                     --> extract_1op cgettag_raw
+                      , cgettop_raw                     --> extract_1op cgettop_raw
+                      , cgettype_raw                    --> extract_1op cgettype_raw
+                      , cincoffset_raw                  --> extract_2op cincoffset_raw
+                      , cincoffsetimmediate_raw         --> extract_imm cincoffsetimmediate_raw
+                      , cmove_raw                       --> extract_cmove
+                      , cram_raw                        --> extract_1op cram_raw
+                      , crrl_raw                        --> extract_1op crrl_raw
+                      , csetaddr_raw                    --> extract_2op csetaddr_raw
+                      , csetbounds_raw                  --> extract_2op csetbounds_raw
+                      , csetboundsexact_raw             --> extract_2op csetboundsexact_raw
+                      , csetboundsimmediate_raw         --> extract_imm csetboundsimmediate_raw
+                      , csetequalexact_raw              --> extract_2op csetequalexact_raw
+                      , csethigh_raw                    --> extract_2op csethigh_raw
+                      , cspecialrw_raw                  --> extract_cspecialrw
+                      , csub_raw                        --> extract_2op csub_raw
+                      , ctestsubset_raw                 --> extract_2op ctestsubset_raw
+                      , cseal_raw                       --> extract_2op cseal_raw
+                      , cunseal_raw                     --> extract_2op cunseal_raw
+                      , clc_raw                         --> extract_imm clc_raw
+                      , csc_raw                         --> extract_nodst csc_raw
+                      ]
+
+rv32_xcheri_shrink = []
+
+-- | List of cheri inspection instructions
+rv32_xcheri_inspection :: Integer -> Integer -> [Instruction]
+rv32_xcheri_inspection src dest = [ cgetaddr dest src
+                                  , cgetbase dest src
+                                  , cgethigh dest src
+                                  , cgetlen  dest src
+                                  , cgetperm dest src
+                                  , cgettag  dest src
+                                  , cgettop  dest src
+                                  , cgettype dest src
+                                  , cram     dest src
+                                  , crrl     dest src]
+
+-- | List of cheri arithmetic instructions
+rv32_xcheri_arithmetic :: Integer -> Integer -> Integer -> Integer -> [Instruction]
+rv32_xcheri_arithmetic src1 src2 imm dest =
+  [ auicgp              dest           imm
+  , cmove               dest src1
+  , cincoffset          dest src1 src2
+  , cincoffsetimmediate dest src1      imm
+  , csetaddr            dest src1 src2
+  , csetbounds          dest src1 src2
+  , csetboundsexact     dest src1 src2
+  , csetboundsimmediate dest src1      imm
+  , csetequalexact      dest src1 src2
+  , csethigh            dest src1 src2
+  , csub                dest src1 src2
+  , ctestsubset         dest src1 src2 ]
+
+-- | List of cheri miscellaneous instructions
+rv32_xcheri_misc :: Integer -> Integer -> Integer -> Integer -> Integer -> [Instruction]
+rv32_xcheri_misc src1 src2 srcScr imm dest =
+  [ candperm    dest src1 src2
+  , ccleartag   dest src1
+  , cspecialrw  dest srcScr src1
+  , cseal       dest src1 src2
+  , cunseal     dest src1 src2 ]
+
+-- | List of cheri control instructions
+rv32_xcheri_control :: Integer -> Integer -> Integer -> [Instruction]
+rv32_xcheri_control src1 src2 dest = []
+
+-- | List of cheri memory instructions
+rv32_xcheri_mem :: ArchDesc -> Integer -> Integer -> Integer -> Integer -> Integer -> [Instruction]
+rv32_xcheri_mem    arch srcAddr srcData imm mop dest =
+  [ clc    dest         srcAddr imm
+  , csc         srcData srcAddr imm]
+
+-- | List of cheri memory instructions
+rv32_a_xcheri :: Integer -> Integer -> Integer -> [Instruction]
+rv32_a_xcheri      srcAddr srcData dest = []
+
+-- | List of cheri instructions
+rv32_xcheri :: ArchDesc -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> [Instruction]
+rv32_xcheri arch src1 src2 srcScr imm mop dest =
+     rv32_xcheri_inspection src1 dest
+  ++ rv32_xcheri_arithmetic src1 src2 imm dest
+  ++ rv32_xcheri_misc src1 src2 srcScr imm dest
+  ++ rv32_xcheri_control src1 src2 dest
+  ++ rv32_xcheri_mem arch src1 src2 imm mop dest
+
+
+
+
+{-
+
+--
+-- SPDX-License-Identifier: BSD-2-Clause
+--
+-- Copyright (c) 2018 Jonathan Woodruff
+-- Copyright (c) 2018 Hesham Almatary
+-- Copyright (c) 2018 Matthew Naylor
+-- Copyright (c) 2019-2020 Alexandre Joannou
+-- Copyright (c) 2020 Peter Rugg
+-- Copyright (c) 2021-2022 Franz Fuchs
+-- All rights reserved.
+--
+-- This software was developed by SRI International and the University of
+-- Cambridge Computer Laboratory (Department of Computer Science and
+-- Technology) under DARPA contract HR0011-18-C-0016 ("ECATS"), as part of the
+-- DARPA SSITH research programme.
+--
+-- This software was partly developed by the University of Cambridge
+-- Computer Laboratory as part of the Partially-Ordered Event-Triggered
+-- Systems (POETS) project, funded by EPSRC grant EP/N031768/1.
+--
+-- This software was developed by the University of  Cambridge
+-- Department of Computer Science and Technology under the
+-- SIPP (Secure IoT Processor Platform with Remote Attestation)
+-- project funded by EPSRC: EP/S030868/1
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+-- 1. Redistributions of source code must retain the above copyright
+--    notice, this list of conditions and the following disclaimer.
+-- 2. Redistributions in binary form must reproduce the above copyright
+--    notice, this list of conditions and the following disclaimer in the
+--    documentation and/or other materials provided with the distribution.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+-- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+-- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+-- ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+-- FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+-- DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+-- OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+-- HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+-- LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+-- OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+-- SUCH DAMAGE.
+--
+
+{-|
+    Module      : RISCV.RV32_Xcheri
     Description : RISC-V CHERI extension
 
     The 'RISCV.RV32_Xcheri' module provides the description of the RISC-V CHERI
@@ -645,3 +956,4 @@ rv32_xcheri arch src1 src2 srcScr imm mop dest =
   ++ rv32_xcheri_misc src1 src2 srcScr imm dest
   ++ rv32_xcheri_control src1 src2 dest
   ++ rv32_xcheri_mem arch src1 src2 imm mop dest
+-}
