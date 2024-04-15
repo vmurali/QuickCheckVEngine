@@ -241,7 +241,11 @@ rv32_xcheri_extract = [ auicgp_raw                      --> extract_uimm auicgp_
                       , csc_raw                         --> extract_nodst csc_raw
                       ]
 
-rv32_xcheri_shrink = []
+shrink_cgetperm :: Integer -> Integer -> [Instruction]
+shrink_cgetperm cs rd = [addi rd 0 0, addi rd 0 0x7ff]
+
+rv32_xcheri_shrink :: [DecodeBranch [Instruction]]
+rv32_xcheri_shrink = [cgetperm_raw                    --> shrink_cgetperm]
 
 -- | List of cheri inspection instructions
 rv32_xcheri_inspection :: Integer -> Integer -> [Instruction]
