@@ -203,7 +203,7 @@ genTSCTorture = random $ do
                             , instUniform $ rv32_i_mem src1 src2 dest imm fenceOp1 fenceOp2
                             ]
   return $ mconcat [ access_inst
-                   , csrr src2 sstatus
+                   --, csrr src2 sstatus
                    , inst $ sret
                    ]
 
@@ -272,9 +272,9 @@ prepareTSCGen = random $ do
                    ,        csrs mstatus s1
                    , inst $ auipc s2 0
                    , inst $ addi s2 s2 16
-                   ,        csrw mepc s2
+                   --,        csrw mepc s2
                    , inst $ lui s2 0xa
-                   ,        csrw medeleg s2
+                   --,        csrw medeleg s2
                    ,        setUpPageTable
                    ,        setupHPMEventSel counterReg hpmCntIdx evt
                    ,        enableHPMCounterM counterReg hpmCntIdx
@@ -287,11 +287,11 @@ prepareTSCGen = random $ do
                    , inst $ addi s0 s0 2
                    ,        csrw satp s0
                    , inst $ addi s1 s1 256
-                   ,        csrc sstatus s1
+                   --,        csrc sstatus s1
                    , inst $ lui s2 2
                    ,        enableHPMCounterS counterReg hpmCntIdx
                    ,        li64 s2 0x80004000
-                   ,        csrw sepc s2
+                   --,        csrw sepc s2
                    ,        csrw stval s2
                    , inst $ sret
                    ]
