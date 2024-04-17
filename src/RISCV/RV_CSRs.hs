@@ -128,6 +128,15 @@ csrs_nameFromIndex idx = lookup idx csrs_map
 
 -- | List of CSRs' (index, name) tuples
 csrs_map :: [(CSRIdx, CSRName)]
+csrs_map = [ (0x300, "mstatus")
+           , (0x310, "mstatush")
+           , (0x342, "mcause")
+           , (0x343, "mtval")
+           , (0x001, "fflags")
+           , (0x002, "frm")
+           , (0x003, "fcsr") ]
+
+{-
 csrs_map = -- User Trap Setup
            [ (0x000, "ustatus")
            , (0x004, "uie")
@@ -213,3 +222,4 @@ csrs_map = -- User Trap Setup
         -- Volume II: Privileged Architecture
         -- Document Version 1.12-draft
         -- September 13, 2019
+-}
