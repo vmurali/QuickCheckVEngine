@@ -255,8 +255,8 @@ genCHERIcontrol = random $ do
   longImm  <- bits 20
   fenceOp1 <- bits 3
   fenceOp2 <- bits 3
-  csrAddr  <- frequency [ (1, return (unsafe_csrs_indexFromName "mccsr"))
-                        , (1, return (unsafe_csrs_indexFromName "mcause"))
+  csrAddr  <- frequency -- (1, return (unsafe_csrs_indexFromName "mccsr"))
+                        [ (1, return (unsafe_csrs_indexFromName "mcause"))
                         , (1, bits 12) ]
   return $ dist [ (2, instUniform $ rv32_xcheri_control srcAddr srcData dest)
                 , (1, inst (csetbounds dest srcData srcAddr))
