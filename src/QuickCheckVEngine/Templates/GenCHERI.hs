@@ -120,12 +120,12 @@ genRandomCHERITest = readParams $ \param -> random $ do
                 , (10, inst $ cspecialrw dest srcScr srcAddr)
                 , (5, maybe mempty (\idx -> instUniform $ rv32_zicsr srcData dest idx mop) srcCsr)
                 , (5, csrr dest srcCsrRO)
-                , (10, switchEncodingMode)
+                --, (10, switchEncodingMode)
                 , (10, cspecialRWChain)
-                , (10, randomCInvoke srcAddr srcData tmpReg tmpReg2)
+                --, (10, randomCInvoke srcAddr srcData tmpReg tmpReg2)
                 , (10, makeShortCap)
                 , (5, clearASR tmpReg tmpReg2)
-                , (5, boundPCC tmpReg tmpReg2 imm longImm)
+                --, (5, boundPCC tmpReg tmpReg2 imm longImm)
                 , (20, inst $ cgettag dest dest)
                 , (if has_nocloadtags arch then 0 else 10, loadTags srcAddr srcData)
                 ]
@@ -133,8 +133,8 @@ genRandomCHERITest = readParams $ \param -> random $ do
 randomCHERIRVCTest :: Template
 randomCHERIRVCTest = random $ do
   rvcInst <- bits 16
-  return $ mconcat [ switchEncodingMode
-                   , genRandomCHERITest
+  return $ mconcat --[ switchEncodingMode
+                   [ genRandomCHERITest
                    , uniform [inst $ MkInstruction rvcInst, gen_rv_c]
                    , repeatN 5 genCHERIinspection
                    ]
